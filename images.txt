@@ -1,4 +1,4 @@
-home-assistant:latest
+home-assistant
 #支持私库
-node-red:latest
+node-red
 #支持私库
