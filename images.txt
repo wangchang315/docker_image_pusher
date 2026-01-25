@@ -1,3 +1,2 @@
 homeassistant/home-assistant
 nodered/node-red
-timescale/timescaledb-ha:latest-pg14
