@@ -1,0 +1,33 @@
+name: Reset Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      # 第一步：不要等，直接物理毁灭 Docker 目录
+      - name: Nuclear Clean
+        run: |
+          # 停止 Docker 服务
+          sudo service docker stop
+          
+          # ⚠️ 核心操作：直接删除整个 Docker 数据目录
+          # 这会把之前所有残留的镜像、缓存、构建数据全部清空
+          echo "正在强制清除 /var/lib/docker ..."
+          sudo rm -rf /var/lib/docker
+          
+          # 重建目录结构
+          sudo mkdir -p /var/lib/docker
+          
+          # 重启 Docker，让它重建数据库
+          sudo service docker start
+          
+          # 再次确认空间
+          echo "清理完成，当前磁盘状态："
+          df -hT
+
+      # 第二步：验证 Docker 是否还活着（如果这步能跑，说明环境救活了）
+      - name: Test Docker
+        run: docker info
