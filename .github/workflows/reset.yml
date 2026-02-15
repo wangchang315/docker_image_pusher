@@ -1,20 +1,22 @@
-- name: 'Aggressive: Clean Container Layer'
-  run: |
-    # 1. 查看哪里最占空间 (确认是 /home/runner 还是 /opt)
-    echo "=== 系统分区情况 ==="
-    df -hT
-    
-    echo "=== 查找大目录 ==="
-    # 通常 runner 自己的缓存会在 _work 或 _tool 目录下
-    sudo du -sh /home/runner/* 2>/dev/null | sort -hr | head -10
-    
-    # 2. 核心清理：删除 runner 自己的工作缓存 (这是占满 146G 的元凶)
-    echo "=== 正在清理 /home/runner/actions-runner/_work ==="
-    sudo rm -rf /home/runner/actions-runner/_work/*/*
-    
-    # 3. 清理 npm/yarn/pip 等可能存在的缓存
-    echo "=== 清理用户缓存 ==="
-    rm -rf ~/.npm ~/.cache ~/.gradle ~/.m2 2>/dev/null || true
-    
-    # 4. 最后再检查一次
-    df -hT
+name: Hard Reset
+
+on:
+  workflow_dispatch:
+
+jobs:
+  reset:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Clean Disk
+        run: |
+          echo "强制清理 /home/runner 缓存..."
+          # 这是关键：清理 runner 自己的工作区，而不是碰不到的 docker 目录
+          sudo rm -rf /home/runner/actions-runner/_work/*/*
+          
+          # 清理用户缓存
+          rm -rf ~/.npm ~/.cache ~/.gradle ~/.m2 2>/dev/null || true
+          
+          echo "清理完成，当前状态："
+          df -hT
+      - name: Break to Exit
+        run: exit 1
