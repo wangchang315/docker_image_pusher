@@ -1,0 +1,28 @@
+jobs:
+  build:
+    runs-on: ubuntu-latest  # 或 ubuntu-20.04/ubuntu-22.04
+    
+    steps:
+      - name: Clean up disk space before starting
+        run: |
+          # 显示当前磁盘使用情况
+          df -h
+          
+          # 清理APT缓存
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          
+          # 清理Docker缓存（如果有）
+          sudo docker system prune -f 2>/dev/null || true
+          
+          # 清理npm缓存
+          npm cache clean --force
+          
+          # 清理临时文件
+          sudo rm -rf /tmp/* /var/tmp/*
+          
+          # 清理日志文件（修复你的问题）
+          sudo rm -rf /home/runner/actions-runner/cached/_diag/*.log 2>/dev/null || true
+          
+          # 再次显示磁盘使用情况
+          df -h
