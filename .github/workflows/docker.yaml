@@ -20,28 +20,35 @@ jobs:
     name: Pull
     runs-on: ubuntu-22.04
     steps:
-    - name: 🔍 Diagnose What's Eating Disk
+    - name: 🧹 Clean Runner Cache & Logs
       run: |
-        echo "================== 1. Filesystem & Space =================="
-        # 这会显示分区情况，看 /var/lib/docker 是否挂载在了一个独立的小分区上
-        mount | grep " / "
+        echo "================== Disk Before Cleaning =================="
         df -hT
 
-        echo "================== 2. Docker's Own View of Space =================="
-        # 这是关键！看 Docker 认为自己用了多少
+        echo "================== Looking for Runner Log Dir =================="
+        # 1. 先找到真正的 Runner 目录结构
+        # GitHub Actions 默认会在 /home/runner/ 下创建 actions-runner，但日志可能在 _diag 或 worker/_diag
+        # 我们用 find 命令去找，避免路径写死错误
+    
+        # 查找所有 .log 文件并显示大小（这通常就是罪魁祸首）
+        sudo find /home/runner -name "*.log" -type f -size +100M 2>/dev/null | xargs ls -lh 2>/dev/null || echo "No large log files found"
+
+        # 2. 【关键清理】直接清空 Runner 的 diag 日志目录（这是报错提到的路径）
+        # 根据报错 '/home/runner/actions-runner/cached/_diag/...'，我们清理 cached 下的 diag
+        echo "================== Cleaning Runner Diag Logs =================="
+        sudo rm -f /home/runner/actions-runner/cached/_diag/*.log
+        sudo rm -f /home/runner/actions-runner/_diag/*.log
+
+        # 3. 清理 Runner 自己的工具缓存（这里通常也会堆积旧版本的压缩包）
+        echo "================== Cleaning Runner Tool Cache =================="
+        sudo rm -rf /home/runner/work/_tool/*
+    
+        # 4. 再次确认 Docker 状态（虽然显示 0，但为了防止元数据残留）
+        echo "================== Docker System Status =================="
         docker system df
 
-        echo "================== 3. Check Inodes (Often the Hidden Culprit) =================="
-        # 即使磁盘没满，如果文件太多把 Inodes 用光了，也会报 "No space left"
-        df -i
-
-        echo "================== 4. Check Overlay2 Dir =================="
-        # 检查 Docker 实际数据目录的大小
-        sudo du -sh /var/lib/docker/overlay2 2>/dev/null || echo "overlay2 dir not found"
-    
-        echo "================== 5. Check Runner's _diag Logs =================="
-        # 检查那个报错提到的 diag 目录，看看是不是日志爆炸了
-        sudo du -sh /home/runner/actions-runner/_diag/
+        echo "================== Disk After Cleaning =================="
+        df -hT
         
     - name: Before freeing up disk space
       run: |
