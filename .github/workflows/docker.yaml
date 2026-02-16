@@ -20,16 +20,35 @@ jobs:
     name: Pull
     runs-on: ubuntu-22.04
     steps:
-    - name: Clean up Docker cache
+    - name: 🔥 Ultimate Clean (Critical)
       run: |
-        # 1. 删除所有悬空镜像（没有被标签引用的镜像层）
-        docker image prune -f
-        # 2. 删除所有构建缓存（这是占用空间最大的部分）
-        docker builder prune -a -f
-        # 3. 查看清理后的磁盘情况
         echo "=============================================================================="
+        echo "1. Disk space before cleanup"
         df -hT
+    
         echo "=============================================================================="
+        echo "2. Removing system caches and temp files..."
+        # 1. 强制清理系统级的 apt 缓存、临时文件（这些通常不被 docker 命令清理）
+        sudo rm -rf /tmp/* /var/tmp/*
+        sudo apt-get clean
+        sudo apt-get autoclean
+    
+        # 2. 强制清理 Docker 的构建缓存（即使它报错也继续）
+        echo "3. Pruning Docker system..."
+        docker builder prune -a -f --filter "until=1h" || true
+        docker system prune -a -f --volumes --filter "until=1h" || true
+    
+        # 3. 关键一步：直接删除 Docker 目录下的旧内容（这是最狠的一招）
+        # 注意：这不会破坏 Docker 服务，但会清空所有旧镜像，正好符合我们的需求
+        echo "4. Nuking /var/lib/docker (This is safe and will free MAX space)..."
+        sudo systemctl stop docker
+        # 只保留 overlay2 目录结构，清空里面的镜像层数据
+        sudo find /var/lib/docker/overlay2 -mindepth 1 -maxdepth 1 -type d | grep -v "l$" | xargs sudo rm -rf 2>/dev/null || true
+        sudo systemctl start docker
+
+        echo "=============================================================================="
+        echo "5. Disk space after aggressive cleanup"
+        df -hT
         
     - name: Before freeing up disk space
       run: |
