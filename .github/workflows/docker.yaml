@@ -20,6 +20,17 @@ jobs:
     name: Pull
     runs-on: ubuntu-22.04
     steps:
+    - name: Clean up Docker cache
+      run: |
+        # 1. 删除所有悬空镜像（没有被标签引用的镜像层）
+        docker image prune -f
+        # 2. 删除所有构建缓存（这是占用空间最大的部分）
+        docker builder prune -a -f
+        # 3. 查看清理后的磁盘情况
+        echo "=============================================================================="
+        df -hT
+        echo "=============================================================================="
+        
     - name: Before freeing up disk space
       run: |
         echo "Before freeing up disk space"
@@ -158,13 +169,4 @@ jobs:
             
         done < images.txt
 
-    - name: Clean up Docker cache
-      run: |
-        # 1. 删除所有悬空镜像（没有被标签引用的镜像层）
-        docker image prune -f
-        # 2. 删除所有构建缓存（这是占用空间最大的部分）
-        docker builder prune -a -f
-        # 3. 查看清理后的磁盘情况
-        echo "=============================================================================="
-        df -hT
-        echo "=============================================================================="
+    
