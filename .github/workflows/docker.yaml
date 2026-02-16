@@ -20,34 +20,28 @@ jobs:
     name: Pull
     runs-on: ubuntu-22.04
     steps:
-    - name: 🧹 Clean Runner Cache & Logs
+    - name: 💣 Nuke Docker Directory
       run: |
-        echo "================== Disk Before Cleaning =================="
-        df -hT
-
-        echo "================== Looking for Runner Log Dir =================="
-        # 1. 先找到真正的 Runner 目录结构
-        # GitHub Actions 默认会在 /home/runner/ 下创建 actions-runner，但日志可能在 _diag 或 worker/_diag
-        # 我们用 find 命令去找，避免路径写死错误
+        # 停止服务
+        sudo service docker stop
     
-        # 查找所有 .log 文件并显示大小（这通常就是罪魁祸首）
-        sudo find /home/runner -name "*.log" -type f -size +100M 2>/dev/null | xargs ls -lh 2>/dev/null || echo "No large log files found"
-
-        # 2. 【关键清理】直接清空 Runner 的 diag 日志目录（这是报错提到的路径）
-        # 根据报错 '/home/runner/actions-runner/cached/_diag/...'，我们清理 cached 下的 diag
-        echo "================== Cleaning Runner Diag Logs =================="
-        sudo rm -f /home/runner/actions-runner/cached/_diag/*.log
-        sudo rm -f /home/runner/actions-runner/_diag/*.log
-
-        # 3. 清理 Runner 自己的工具缓存（这里通常也会堆积旧版本的压缩包）
-        echo "================== Cleaning Runner Tool Cache =================="
-        sudo rm -rf /home/runner/work/_tool/*
+        # 关键：彻底删除整个 docker 目录
+        # 这会清除一切：镜像、容器、卷、构建缓存、元数据
+        echo "Removing /var/lib/docker..."
+        sudo rm -rf /var/lib/docker
     
-        # 4. 再次确认 Docker 状态（虽然显示 0，但为了防止元数据残留）
-        echo "================== Docker System Status =================="
-        docker system df
-
-        echo "================== Disk After Cleaning =================="
+        # 重新创建目录
+        sudo mkdir -p /var/lib/docker
+    
+        # 重新启动 Docker
+        sudo service docker start
+    
+        # 等待启动
+        sleep 5
+    
+        # 检查状态
+        echo "================== Docker Info =================="
+        docker info
         df -hT
         
     - name: Before freeing up disk space
