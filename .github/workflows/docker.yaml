@@ -19,55 +19,14 @@ jobs:
   build:
     name: Pull
     runs-on: ubuntu-latest
-    steps:
-    - name: 🛡️ Fix Full System Disk
-      run: |
-        # 1. 先尝试清理系统盘的垃圾（针对 /tmp 和 /var/tmp）
-        echo "Cleaning system temp files..."
-        sudo rm -rf /tmp/* /var/tmp/* /home/runner/work/_temp/* 2>/dev/null || true
-    
-        # 2. 关键：把 Docker 的临时目录指向内存盘 (tmpfs)
-        # 因为系统盘 / 已经满了，Docker 拉取时解压的临时文件写不进 /tmp
-        export DOCKER_TMPDIR=/run/shm/docker-tmp
-        mkdir -p $DOCKER_TMPDIR
-    
-        # 3. 确保内存盘够用
-        echo "================== Memory Disk Status =================="
-        df -hT /run/shm
-    
-        # 4. 重启 Docker 以确保环境干净
-        sudo service docker restart
-    
-        # 5. 最后的杀手锏：如果系统盘真的满了，尝试清理 npm/yarn/pip 缓存（如果存在）
-        # 这些通常是系统盘的杀手
-        rm -rf ~/.npm ~/.cache/yarn ~/.cache/pip 2>/dev/null || true
-    
-        # 6. 再次确认系统盘空间（希望能腾出一点给 Docker 做临时解压）
-        echo "================== Final System Disk Status =================="
-        df -hT /
-        
+    steps:           
     - name: Before freeing up disk space
       run: |
         echo "Before freeing up disk space"
         echo "=============================================================================="
         df -hT
         echo "=============================================================================="
-
-    # 增加可用磁盘空间
-    #- name: Maximize build space
-      #uses: easimon/maximize-build-space@master
-      #with:
-        # 贪心配置：只给系统留 30G 空间，剩下的全给 Docker
-        # 这样配置后，Docker 可用空间 = 92G - 30G = 62G，非常充裕
-        #root-reserve-mb: 30720
-        #swap-size-mb: 128
-        #remove-dotnet: 'true'
-        #remove-haskell: 'true'
-        # 如果空间还是不够用，可以把以下开启，清理出更多空间
-        #remove-android: 'true'
-        #remove-codeql: 'true'
-        #build-mount-path: '/var/lib/docker/'
-
+    
     - name: Restart docker
       run: sudo service docker restart
 
