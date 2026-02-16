@@ -20,29 +20,31 @@ jobs:
     name: Pull
     runs-on: ubuntu-22.04
     steps:
-    - name: 💣 Nuke Docker Directory
+    - name: 🛡️ Fix Full System Disk
       run: |
-        # 停止服务
-        sudo service docker stop
+        # 1. 先尝试清理系统盘的垃圾（针对 /tmp 和 /var/tmp）
+        echo "Cleaning system temp files..."
+        sudo rm -rf /tmp/* /var/tmp/* /home/runner/work/_temp/* 2>/dev/null || true
     
-        # 关键：彻底删除整个 docker 目录
-        # 这会清除一切：镜像、容器、卷、构建缓存、元数据
-        echo "Removing /var/lib/docker..."
-        sudo rm -rf /var/lib/docker
+        # 2. 关键：把 Docker 的临时目录指向内存盘 (tmpfs)
+        # 因为系统盘 / 已经满了，Docker 拉取时解压的临时文件写不进 /tmp
+        export DOCKER_TMPDIR=/run/shm/docker-tmp
+        mkdir -p $DOCKER_TMPDIR
     
-        # 重新创建目录
-        sudo mkdir -p /var/lib/docker
+        # 3. 确保内存盘够用
+        echo "================== Memory Disk Status =================="
+        df -hT /run/shm
     
-        # 重新启动 Docker
-        sudo service docker start
+        # 4. 重启 Docker 以确保环境干净
+        sudo service docker restart
     
-        # 等待启动
-        sleep 5
+        # 5. 最后的杀手锏：如果系统盘真的满了，尝试清理 npm/yarn/pip 缓存（如果存在）
+        # 这些通常是系统盘的杀手
+        rm -rf ~/.npm ~/.cache/yarn ~/.cache/pip 2>/dev/null || true
     
-        # 检查状态
-        echo "================== Docker Info =================="
-        docker info
-        df -hT
+        # 6. 再次确认系统盘空间（希望能腾出一点给 Docker 做临时解压）
+        echo "================== Final System Disk Status =================="
+        df -hT /
         
     - name: Before freeing up disk space
       run: |
