@@ -54,19 +54,19 @@ jobs:
         echo "=============================================================================="
 
     # 增加可用磁盘空间
-    - name: Maximize build space
-      uses: easimon/maximize-build-space@master
-      with:
+    #- name: Maximize build space
+      #uses: easimon/maximize-build-space@master
+      #with:
         # 贪心配置：只给系统留 30G 空间，剩下的全给 Docker
         # 这样配置后，Docker 可用空间 = 92G - 30G = 62G，非常充裕
-        root-reserve-mb: 30720
-        swap-size-mb: 128
-        remove-dotnet: 'true'
-        remove-haskell: 'true'
+        #root-reserve-mb: 30720
+        #swap-size-mb: 128
+        #remove-dotnet: 'true'
+        #remove-haskell: 'true'
         # 如果空间还是不够用，可以把以下开启，清理出更多空间
-        remove-android: 'true'
-        remove-codeql: 'true'
-        build-mount-path: '/var/lib/docker/'
+        #remove-android: 'true'
+        #remove-codeql: 'true'
+        #build-mount-path: '/var/lib/docker/'
 
     - name: Restart docker
       run: sudo service docker restart
