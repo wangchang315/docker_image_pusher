@@ -129,8 +129,20 @@ jobs:
             new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$platform_prefix$name_space_prefix$image_name_tag"
             echo "docker tag $image $new_image"
             docker tag $image $new_image
-            echo "docker push $new_image"
-            docker push $new_image
+                        echo "docker push $new_image"
+            if ! docker push $new_image; then
+                
+                echo "docker push 失败，镜像可能是 zstd/OCI 格式，改用 skopeo 转码直推"
+                extra_args=()
+                if [ -n "$platform" ]; then
+                    extra_args+=(--override-os "${platform%%/*}" --override-arch "${platform##*/}")
+                fi
+                skopeo copy --dest-compress-format gzip --format v2s2 \
+                    "${extra_args[@]}" \
+                    --dest-creds "$ALIYUN_REGISTRY_USER:$ALIYUN_REGISTRY_PASSWORD" \
+                    "docker://$image" "docker://$new_image"
+            fi
+            
             echo "开始清理磁盘空间"
             echo "=============================================================================="
             df -hT
